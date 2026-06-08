@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PaperHub – EmailJS OTP Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #F0F4FF;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 4px 24px rgba(26,115,232,0.10);
+    }
+    .logo { font-size: 32px; margin-bottom: 8px; }
+    h1 { font-size: 22px; font-weight: 700; color: #1A1A2E; margin-bottom: 4px; }
+    .subtitle { font-size: 14px; color: #5F6368; margin-bottom: 28px; }
+    .step { display: none; }
+    .step.active { display: block; }
+    label { font-size: 13px; font-weight: 600; color: #5F6368; display: block; margin-bottom: 6px; }
+    input {
+      width: 100%; padding: 12px 16px;
+      border: 2px solid #E8EAED; border-radius: 12px;
+      font-size: 15px; color: #1A1A2E;
+      transition: border-color 0.2s; outline: none;
+      margin-bottom: 16px;
+    }
+    input:focus { border-color: #1A73E8; }
+    .otp-input {
+      font-size: 28px; font-weight: 700;
+      text-align: center; letter-spacing: 12px;
+    }
+    button {
+      width: 100%; padding: 14px;
+      background: #1A73E8; color: #fff;
+      border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s;
+    }
+    button:hover { background: #1557B0; }
+    button:disabled { background: #9AA0A6; cursor: not-allowed; }
+    .resend-btn {
+      background: transparent; color: #1A73E8;
+      border: 2px solid #1A73E8; margin-top: 10px;
+      font-size: 14px;
+    }
+    .resend-btn:hover { background: #E8F0FE; }
+    .msg { padding: 12px 16px; border-radius: 10px; font-size: 14px; margin-bottom: 16px; display: none; }
+    .msg.success { background: #E6F4EA; color: #0A6B3C; display: block; }
+    .msg.error { background: #FDECEA; color: #B71C1C; display: block; }
+    .msg.info { background: #E8F0FE; color: #1557B0; display: block; }
+    .email-display {
+      background: #F0F4FF; border-radius: 10px;
+      padding: 12px 16px; font-size: 14px;
+      color: #1A73E8; font-weight: 600;
+      margin-bottom: 16px; text-align: center;
+    }
+    .step-indicator {
+      display: flex; gap: 8px;
+      justify-content: center; margin-bottom: 28px;
+    }
+    .step-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #E8EAED; transition: background 0.3s;
+    }
+    .step-dot.active { background: #1A73E8; }
+    .step-dot.done { background: #0F9D58; }
+    .success-icon { font-size: 56px; text-align: center; margin-bottom: 16px; }
+    .success-title { font-size: 22px; font-weight: 700; color: #1A1A2E; text-align: center; margin-bottom: 8px; }
+    .success-sub { font-size: 14px; color: #5F6368; text-align: center; margin-bottom: 24px; }
+    .config-note {
+      background: #FFF9C4; border-radius: 10px;
+      padding: 12px 16px; font-size: 12px;
+      color: #F57F17; margin-bottom: 20px;
+      border: 1px solid #F9A825;
+    }
+    .config-note strong { display: block; margin-bottom: 4px; }
+    .timer { font-size: 13px; color: #9AA0A6; text-align: center; margin-top: 8px; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">📄</div>
+  <h1>PaperHub OTP Demo</h1>
+  <p class="subtitle">EmailJS verification flow demo</p>
+
+  <div class="step-indicator">
+    <div class="step-dot active" id="dot1"></div>
+    <div class="step-dot" id="dot2"></div>
+    <div class="step-dot" id="dot3"></div>
+  </div>
+
+  <div class="config-note">
+    <strong>⚙️ Setup required</strong>
+    Replace YOUR_PUBLIC_KEY, YOUR_SERVICE_ID, YOUR_TEMPLATE_ID in the JS below with your real EmailJS keys to actually send emails.
+  </div>
+
+  <!-- STEP 1: Enter Email -->
+  <div class="step active" id="step1">
+    <div id="msg1" class="msg"></div>
+    <label>Your email address</label>
+    <input type="email" id="email-input" placeholder="student@gmail.com" />
+    <label>Your name</label>
+    <input type="text" id="name-input" placeholder="Jay Bhatt" />
+    <button onclick="sendOTP()" id="send-btn">Send OTP to email</button>
+  </div>
+
+  <!-- STEP 2: Enter OTP -->
+  <div class="step" id="step2">
+    <div id="msg2" class="msg"></div>
+    <p style="font-size:14px; color:#5F6368; margin-bottom:12px;">OTP sent to:</p>
+    <div class="email-display" id="email-display"></div>
+    <label>Enter 6-digit OTP</label>
+    <input type="number" id="otp-input" class="otp-input" placeholder="------" maxlength="6" />
+    <button onclick="verifyOTP()" id="verify-btn">Verify OTP</button>
+    <button class="resend-btn" onclick="resendOTP()" id="resend-btn">Resend OTP</button>
+    <p class="timer" id="timer-text"></p>
+  </div>
+
+  <!-- STEP 3: Success -->
+  <div class="step" id="step3">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Email verified!</div>
+    <div class="success-sub">Your OTP was verified successfully. Suggestion submitted to PaperHub!</div>
+    <button onclick="resetDemo()">Try again</button>
+  </div>
+</div>
+
+<script>
+  emailjs.init('vyzesLWA1WwFmjs0L');
+
+  const SERVICE_ID = 'service_8ig53ci';
+  const TEMPLATE_ID = 'template_eghx6zj';
+
+  let generatedOTP = '';
+  let otpExpiry = 0;
+  let timerInterval = null;
+
+  function generateOTP() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  function showMsg(stepNum, text, type) {
+    const el = document.getElementById('msg' + stepNum);
+    el.className = 'msg ' + type;
+    el.textContent = text;
+  }
+
+  function startTimer(seconds) {
+    clearInterval(timerInterval);
+    const timerEl = document.getElementById('timer-text');
+    let remaining = seconds;
+    timerEl.textContent = 'OTP expires in ' + remaining + 's';
+    timerInterval = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(timerInterval);
+        timerEl.textContent = 'OTP expired! Please resend.';
+        timerEl.style.color = '#EA4335';
+      } else {
+        timerEl.textContent = 'OTP expires in ' + remaining + 's';
+        timerEl.style.color = '#9AA0A6';
+      }
+    }, 1000);
+  }
+
+  async function sendOTP() {
+    const email = document.getElementById('email-input').value.trim();
+    const name = document.getElementById('name-input').value.trim();
+
+    if (!email || !name) {
+      showMsg(1, 'Please enter your name and email!', 'error');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showMsg(1, 'Please enter a valid email address!', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('send-btn');
+    btn.disabled = true;
+    btn.textContent = 'Sending OTP...';
+    showMsg(1, '', '');
+
+    generatedOTP = generateOTP();
+    otpExpiry = Date.now() + (10 * 60 * 1000);
+
+    try {
+      await emailjs.send(SERVICE_ID, TEMPLATE_ID, {
+        to_name: name,
+        to_email: email,
+        otp_code: generatedOTP,
+        app_name: 'PaperHub',
+      });
+
+      document.getElementById('email-display').textContent = email;
+      document.getElementById('step1').classList.remove('active');
+      document.getElementById('step2').classList.add('active');
+      document.getElementById('dot1').classList.remove('active');
+      document.getElementById('dot1').classList.add('done');
+      document.getElementById('dot2').classList.add('active');
+      startTimer(600);
+
+    } catch (error) {
+      showMsg(1, 'EmailJS not configured yet. For demo, OTP is: ' + generatedOTP, 'info');
+      document.getElementById('email-display').textContent = email;
+      document.getElementById('step1').classList.remove('active');
+      document.getElementById('step2').classList.add('active');
+      document.getElementById('dot1').classList.remove('active');
+      document.getElementById('dot1').classList.add('done');
+      document.getElementById('dot2').classList.add('active');
+      startTimer(600);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send OTP to email';
+    }
+  }
+
+  function verifyOTP() {
+    const entered = document.getElementById('otp-input').value.trim();
+
+    if (!entered || entered.length !== 6) {
+      showMsg(2, 'Please enter the 6-digit OTP!', 'error');
+      return;
+    }
+
+    if (Date.now() > otpExpiry) {
+      showMsg(2, 'OTP expired! Please resend.', 'error');
+      return;
+    }
+
+    if (entered === generatedOTP) {
+      clearInterval(timerInterval);
+      document.getElementById('step2').classList.remove('active');
+      document.getElementById('step3').classList.add('active');
+      document.getElementById('dot2').classList.remove('active');
+      document.getElementById('dot2').classList.add('done');
+      document.getElementById('dot3').classList.add('active');
+    } else {
+      showMsg(2, 'Wrong OTP! Please try again.', 'error');
+      document.getElementById('otp-input').value = '';
+    }
+  }
+
+  async function resendOTP() {
+    const email = document.getElementById('email-display').textContent;
+    generatedOTP = generateOTP();
+    otpExpiry = Date.now() + (10 * 60 * 1000);
+    document.getElementById('otp-input').value = '';
+
+    try {
+      await emailjs.send(SERVICE_ID, TEMPLATE_ID, {
+        to_email: email,
+        otp_code: generatedOTP,
+        app_name: 'PaperHub',
+      });
+      showMsg(2, 'OTP resent to your email!', 'success');
+    } catch (e) {
+      showMsg(2, 'Demo mode - New OTP is: ' + generatedOTP, 'info');
+    }
+    startTimer(600);
+  }
+
+  function resetDemo() {
+    clearInterval(timerInterval);
+    generatedOTP = '';
+    document.getElementById('email-input').value = '';
+    document.getElementById('name-input').value = '';
+    document.getElementById('otp-input').value = '';
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step1').classList.add('active');
+    document.querySelectorAll('.step-dot').forEach(d => { d.classList.remove('active', 'done'); });
+    document.getElementById('dot1').classList.add('active');
+    document.querySelectorAll('.msg').forEach(m => { m.className = 'msg'; m.textContent = ''; });
+  }
+
+  document.getElementById('otp-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') verifyOTP();
+  });
+</script>
+</body>
+</html>
